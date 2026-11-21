@@ -1,0 +1,359 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>บ้านพักอาศัย 2 ชั้น 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-screen model; a drafting-sheet control card docks bottom on phones, right on wide screens */
+:root{
+  --bg:#e9edf0; --panel:#fbfbf9; --ink:#1f2a30; --muted:#5d6b72; --line:#d3d9dc;
+  --accent:#b5532b; --accent-ink:#ffffff; --chip:#eef1f2; --label-bg:rgba(251,251,249,.92);
+  --f-body:"IBM Plex Sans Thai",system-ui,"Leelawadee UI","Noto Sans Thai",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12181b; --panel:#1b2327; --ink:#e7ecee; --muted:#9aa8ae; --line:#2e3a40;
+  --accent:#e0794b; --accent-ink:#1b1310; --chip:#243035; --label-bg:rgba(27,35,39,.9); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12181b; --panel:#1b2327; --ink:#e7ecee; --muted:#9aa8ae; --line:#2e3a40;
+  --accent:#e0794b; --accent-ink:#1b1310; --chip:#243035; --label-bg:rgba(27,35,39,.9); color-scheme:dark}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;overflow:hidden}
+#app{position:relative;height:100%;display:flex;flex-direction:column}
+#stage{position:relative;flex:1;min-height:0}
+#stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
+.head{position:absolute;top:10px;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+.title{background:var(--label-bg);border:1px solid var(--line);border-radius:6px;padding:6px 10px;pointer-events:auto;max-width:100%}
+.title h1{margin:0;font-size:16px;font-weight:600;text-wrap:balance}
+.title p{margin:2px 0 0;font:12px/1.4 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.views{position:absolute;bottom:10px;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;gap:0;justify-content:center;pointer-events:none}
+.views button{pointer-events:auto;font:500 13px var(--f-body);background:var(--label-bg);color:var(--ink);border:1px solid var(--line);
+  margin-left:-1px;padding:7px 12px;cursor:pointer;min-width:0}
+.views button:first-child{border-radius:6px 0 0 6px;margin-left:0} .views button:last-child{border-radius:0 6px 6px 0}
+.views button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.views button:focus-visible,.tg:focus-within,.sheet-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#loading{position:absolute;inset:0;display:grid;place-items:center;font:13px var(--f-mono);color:var(--muted)}
+.lbl{position:absolute;transform:translate(-50%,-50%);font:500 12px var(--f-body);white-space:nowrap;background:var(--label-bg);
+  color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:2px 6px;pointer-events:none}
+.lbl small{font:11px var(--f-mono);color:var(--muted);margin-left:4px}
+#labels{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.sheet{background:var(--panel);border-top:1px solid var(--line);max-height:42%;overflow:auto;flex:none;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 12px}
+.sheet-toggle{display:flex;width:100%;justify-content:space-between;align-items:center;background:none;border:0;color:var(--ink);
+  font:600 14px var(--f-body);padding:4px 0;cursor:pointer}
+.sheet-toggle span{font:12px var(--f-mono);color:var(--muted)}
+.groups{display:grid;gap:10px;margin-top:8px}
+.group h2{margin:0 0 6px;font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.tg{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:5px 11px 5px 7px;cursor:pointer;user-select:none;font-size:14px}
+.tg:has(input:disabled){opacity:.5}
+details.group summary{font:500 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);cursor:pointer;margin-bottom:6px}
+.tg input{appearance:none;width:18px;height:18px;border-radius:4px;border:1.5px solid var(--muted);display:grid;place-items:center;margin:0;background:var(--panel)}
+.tg input:checked{background:var(--accent);border-color:var(--accent)}
+.tg input:checked::after{content:"";width:9px;height:5px;border:2px solid var(--accent-ink);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.tg:has(input:checked){border-color:var(--accent)}
+.facts{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:4px 12px;margin:0;font-size:13px}
+.facts div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0;min-width:0}
+.facts dt{color:var(--muted)} .facts dd{margin:0;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.note{margin:6px 0 0;font-size:12px;color:var(--muted);max-width:65ch}
+.sheet[data-collapsed="true"] .groups{display:none}
+@media (min-width:900px){
+  #app{flex-direction:row}
+  .sheet{width:340px;max-height:none;border-top:0;border-left:1px solid var(--line);overflow:auto;padding-block:16px}
+  .sheet-toggle{pointer-events:none} .sheet-toggle span{display:none}
+  .sheet[data-collapsed="true"] .groups{display:grid}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div id="app">
+  <div id="stage">
+    <div id="loading">กำลังโหลดโมเดล…</div>
+    <div id="labels"></div>
+    <div class="head">
+      <div class="title">
+        <h1>บ้านพักอาศัย 2 ชั้น</h1>
+        <p>17.50 × 14.00 ม. · มาตราส่วนจริง 1:1</p>
+      </div>
+    </div>
+    <div class="views" role="group" aria-label="มุมมอง">
+        <button id="v-front" type="button" aria-pressed="true">หน้าบ้าน</button>
+        <button id="v-aerial" type="button">มุมสูง</button>
+        <button id="v-top" type="button">ผังด้านบน</button>
+        <button id="v-back" type="button">หลังบ้าน</button>
+    </div>
+  </div>
+
+  <section class="sheet" id="sheet" data-collapsed="false">
+    <button class="sheet-toggle" id="sheet-toggle" type="button" aria-expanded="true">ส่วนประกอบที่แสดง <span id="sheet-hint">ซ่อน ▾</span></button>
+    <div class="groups">
+      <div class="group">
+        <h2>อาคาร</h2>
+        <div class="chips">
+          <label class="tg"><input type="checkbox" id="t-roof" checked>หลังคา</label>
+          <label class="tg"><input type="checkbox" id="t-upper" checked>ชั้นบน</label>
+          <label class="tg"><input type="checkbox" id="t-partitions" checked>ผนังภายใน</label>
+          <label class="tg"><input type="checkbox" id="t-stair" checked>บันได</label>
+        </div>
+      </div>
+      <div class="group">
+        <h2>งานติดตั้ง</h2>
+        <div class="chips">
+          <label class="tg"><input type="checkbox" id="t-frames" checked>วงกบ</label>
+          <label class="tg"><input type="checkbox" id="t-glass" checked>กระจก / ราว</label>
+          <label class="tg"><input type="checkbox" id="t-doors" checked>บานประตู</label>
+          <label class="tg"><input type="checkbox" id="t-sanitary" checked>สุขภัณฑ์</label>
+          <label class="tg"><input type="checkbox" id="t-furniture" checked>เฟอร์นิเจอร์</label>
+        </div>
+      </div>
+      <div class="group">
+        <h2>ภายนอกและป้าย</h2>
+        <div class="chips">
+          <label class="tg"><input type="checkbox" id="t-trees" checked>ต้นไม้</label>
+          <label class="tg"><input type="checkbox" id="t-site" checked>พื้นที่รอบบ้าน</label>
+          <label class="tg"><input type="checkbox" id="t-labels">ชื่อห้อง</label>
+        </div>
+      </div>
+      <details class="group" id="facts">
+        <summary>ระดับและขนาด</summary>
+        <dl class="facts">
+          <div><dt>พื้นชั้น 1</dt><dd>+0.50</dd></div>
+          <div><dt>พื้นชั้น 2</dt><dd>+4.20</dd></div>
+          <div><dt>หลังคาซ้าย</dt><dd>+7.80</dd></div>
+          <div><dt>หลังคากลาง</dt><dd>+8.80</dd></div>
+          <div><dt>หลังคาขวา</dt><dd>+4.20</dd></div>
+          <div><dt>ผนังภายนอก</dt><dd>0.20 ม.</dd></div>
+          <div><dt>ผนังภายใน</dt><dd>0.10 ม.</dd></div>
+          <div><dt>บันได</dt><dd>22 ลูก</dd></div>
+        </dl>
+        <p class="note">ลากเพื่อหมุน ถ่างสองนิ้วเพื่อซูม ลากสองนิ้วเพื่อเลื่อน · โมเดลทำจากแปลน P1/P2 Rev และรูปด้าน ตำแหน่งผนังภายในคลาดได้ราว ±10 ซม. ใช้ประกอบการคุยงาน ก่อนก่อสร้างให้ยึดแบบก่อสร้าง</p>
+      </details>
+    </div>
+  </section>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xcfe0ec);
+scene.fog = new THREE.Fog(0xcfe0ec, 70, 140);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.minDistance = 3; controls.maxDistance = 90;
+
+scene.add(new THREE.HemisphereLight(0xeaf3ff, 0x6f7a55, 1.1));
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+sun.position.set(-18, 30, 22);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 90 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+scene.add(sun);
+const centre = new THREE.Vector3(8.75, 0, -8);   // model (x, y) metres -> three (x, -y); Y is up
+sun.target.position.copy(centre); scene.add(sun.target);
+
+// TextureCraft textures, box-projected in world metres
+const texLoader = new THREE.TextureLoader();
+const tex = {};
+function T(name) {
+  if (!tex[name]) {
+    const t = texLoader.load(`t/${name}.jpg`);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    tex[name] = t;
+  }
+  return tex[name];
+}
+const SURF = {   // body -> [texture, repeat in metres, keep body colour as tint]
+  "Plinth": ["tile", 2.4], "Slab 2F": ["tile", 2.4], "Terrace": ["granite", 1.2], "Planters": ["granite", 1.0],
+  "Walls GF": ["plaster", 2, 1], "Walls Centre": ["plaster", 2, 1], "Walls Left 2F": ["plaster", 2, 1], "Walls Laundry": ["plaster", 2, 1],
+  "Partitions GF": ["plaster", 2, 1], "Partitions 2F": ["plaster", 2, 1], "Carport frame": ["plaster", 2, 1],
+  "Portico": ["marble", 1.5], "Portico arch": ["marble", 1.5], "Kitchen tops": ["marble", 1.2],
+  "Roof Centre": ["roof", 3], "Roof Left": ["roof", 3], "Roof Right": ["roof", 3], "Laundry roof": ["roof", 3],
+  "Stair": ["oak", 1.5], "Site lawn": ["grass", 4], "Site lawn (1)": ["grass", 4], "Site paving": ["cobble", 1.2],
+  "Apron": ["concrete", 3], "Carport": ["concrete", 3], "Tree trunks": ["bark", 1], "Tree crowns": ["grass", 1.5, 1], "Shrubs": ["grass", 1.0, 1],
+};
+function boxUV(geom, rep) {
+  const p = geom.attributes.position, n = geom.attributes.normal, uv = new Float32Array(p.count * 2);
+  for (let i = 0; i < p.count; i++) {
+    const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i)), az = Math.abs(n.getZ(i));
+    let u, v;
+    if (ay >= ax && ay >= az) { u = p.getX(i); v = p.getZ(i); }
+    else if (ax >= az) { u = p.getZ(i); v = p.getY(i); }
+    else { u = p.getX(i); v = p.getY(i); }
+    uv[2 * i] = u / rep; uv[2 * i + 1] = v / rep;
+  }
+  geom.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+}
+
+// upper-floor switch = a cut just under the first-floor slab (+4.00) on every building layer
+const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 3.9);
+const BUILDING = ["structure", "partitions", "stair", "frames", "glass", "doors", "sanitary", "furniture"];
+const LAYERS = ["site", "trees", "structure", "partitions", "stair", "roof", "frames", "glass", "doors", "furniture", "sanitary"];
+const groups = {};
+const loader = new GLTFLoader();
+let loaded = 0;
+const loadingEl = document.getElementById("loading");
+
+function prepare(layer, root) {
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const name = o.name || (o.parent && o.parent.name) || "";
+    const body = SURF[name] ? name : (SURF[o.parent?.name] ? o.parent.name : name);
+    let m = o.material.clone();
+    m = new THREE.MeshStandardMaterial({ color: m.color, roughness: m.roughness ?? 0.8, metalness: m.metalness ?? 0 });
+    const s = SURF[body];
+    if (s) { boxUV(o.geometry, s[1]); m.map = T(s[0]); if (!s[2]) m.color.set(0xffffff); }
+    if (layer === "glass") { m.color.set(0x7fb2b4); m.transparent = true; m.opacity = 0.32; m.roughness = 0.05; m.depthWrite = false; }
+    if (layer === "frames") { m.metalness = 0.6; m.roughness = 0.4; }
+    if (BUILDING.includes(layer)) { m.clippingPlanes = []; m.clipShadows = true; m.side = THREE.DoubleSide; }
+    o.material = m;
+    o.castShadow = layer !== "site" && layer !== "glass";
+    o.receiveShadow = true;
+  });
+}
+function b64ToBuffer(b64) {
+  const bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+function loadModels() {
+  const M = window.HOUSE_MODELS;
+  if (!M) { loadingEl.textContent = "โหลดไฟล์โมเดลไม่สำเร็จ ลองรีเฟรชหน้า"; return; }
+  LAYERS.forEach(layer => {
+    loader.parse(b64ToBuffer(M[layer]), "", g => {
+      prepare(layer, g.scene); groups[layer] = g.scene; scene.add(g.scene);
+      loaded++; loadingEl.textContent = `กำลังโหลดโมเดล… ${loaded}/${LAYERS.length}`;
+      if (loaded === LAYERS.length) { loadingEl.hidden = true; applyToggles(); }
+    }, () => { loadingEl.textContent = `โหลด ${layer} ไม่สำเร็จ ลองรีเฟรชหน้า`; });
+  });
+}
+const ms = document.createElement("script");
+ms.src = "models.js"; ms.onload = loadModels;
+ms.onerror = () => { loadingEl.textContent = "โหลดไฟล์โมเดลไม่สำเร็จ ลองรีเฟรชหน้า"; };
+document.head.append(ms);
+
+// room labels: model coordinates (x, y, floor level) in metres
+const ROOMS = {
+  gf: [["ครัว", 2.5, 11.2], ["ซักล้าง", 2.5, 15], ["ทานอาหาร", 7.6, 9.2], ["รับแขก", 8.4, 4.2, "สูง 2 ชั้น"], ["เฉลียง", 8.5, 1.0],
+       ["นอน 3", 8.6, 12.4], ["นอน 2", 13, 12.4], ["นอน 1", 13.2, 8.1], ["WC 1", 16.3, 8.1], ["WC 2", 16.3, 12.4], ["WC 3", 5.7, 12.4],
+       ["WC", 3.0, 13.2], ["โถง", 13, 10.3], ["เก็บของ", 4.1, 7.6], ["โรงจอดรถ", 2.7, 3.4]],
+  uf: [["นอน 4", 2.6, 12.2], ["นอน 5", 2.6, 3.5], ["WC 4", 1.5, 9.5], ["WC 5", 1.5, 5.8], ["ระเบียง", 2.7, 1.25],
+       ["ห้องพระ", 7.3, 12.4], ["WC", 9.9, 12.4], ["โถงเอนกประสงค์", 8.2, 8.8], ["โถงบันได", 4.2, 7.9]],
+};
+const labelsEl = document.getElementById("labels");
+const labelNodes = [];
+for (const [floor, list] of Object.entries(ROOMS)) {
+  const z = floor === "gf" ? 0.5 + 1.2 : 4.2 + 1.2;
+  for (const [name, x, y, note] of list) {
+    const el = document.createElement("div"); el.className = "lbl";
+    el.innerHTML = note ? `${name}<small>${note}</small>` : name;
+    labelsEl.append(el);
+    labelNodes.push({ el, floor, pos: new THREE.Vector3(x, z, -y) });
+  }
+}
+
+// toggles
+const $ = id => document.getElementById(id);
+const state = {};
+function applyToggles() {
+  const on = id => $(id).checked;
+  const upper = on("t-upper");
+  const vis = { roof: on("t-roof") && upper, partitions: on("t-partitions"), stair: on("t-stair"), frames: on("t-frames"),
+    glass: on("t-glass"), doors: on("t-doors"), sanitary: on("t-sanitary"), furniture: on("t-furniture"), trees: on("t-trees"),
+    site: on("t-site"), structure: true };
+  for (const [k, g] of Object.entries(groups)) g.visible = vis[k] ?? true;
+  for (const k of BUILDING) groups[k]?.traverse(o => { if (o.isMesh) o.material.clippingPlanes = upper ? [] : [cut]; });
+  $("t-roof").disabled = !upper;
+  state.labels = on("t-labels"); state.upper = upper;
+  labelsEl.hidden = !state.labels;
+  try { localStorage.setItem("house3d-toggles", JSON.stringify([...document.querySelectorAll(".tg input")].map(i => [i.id, i.checked]))); } catch (e) {}
+}
+try { (JSON.parse(localStorage.getItem("house3d-toggles")) || []).forEach(([id, v]) => { if ($(id)) $(id).checked = v; }); } catch (e) {}
+document.querySelectorAll(".tg input").forEach(i => i.addEventListener("change", applyToggles));
+
+// views (positions in model metres -> three)
+const P = (x, y, z) => new THREE.Vector3(x, z, -y);
+const VIEWS = {
+  front: [P(1.5, -21, 7), P(8.5, 5, 3.6)], aerial: [P(-12, -16, 22), P(8.75, 7.5, 1)],
+  top: [P(8.75, 7.0, 42), P(8.75, 7.01, 0)], back: [P(22, 30, 9), P(8.75, 9, 3)],
+};
+let anim = null;
+function fitted(name) {   // pull back on tall/narrow screens so the whole 17.5 m front fits
+  const [pos, tgt] = VIEWS[name];
+  const k = Math.max(1, 1.05 / Math.max(camera.aspect, 0.3));
+  return [tgt.clone().add(pos.clone().sub(tgt).multiplyScalar(name === "top" ? Math.max(1, 0.9 / camera.aspect) : k)), tgt];
+}
+function go(name) {
+  const [pos, tgt] = fitted(name);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { camera.position.copy(pos); controls.target.copy(tgt); return; }
+  anim = { t: 0, p0: camera.position.clone(), t0: controls.target.clone(), p1: pos, t1: tgt };
+}
+["front", "aerial", "top", "back"].forEach(v => $("v-" + v).addEventListener("click", () => {
+  document.querySelectorAll(".views button").forEach(b => b.setAttribute("aria-pressed", String(b.id === "v-" + v)));
+  go(v);
+}));
+if (matchMedia("(min-width: 900px)").matches) $("facts").open = true;
+let firstFit = true;
+
+// sheet collapse (phones)
+$("sheet-toggle").addEventListener("click", () => {
+  const s = $("sheet"), c = s.dataset.collapsed !== "true";
+  s.dataset.collapsed = String(c); $("sheet-toggle").setAttribute("aria-expanded", String(!c));
+  $("sheet-hint").textContent = c ? "แสดง ▴" : "ซ่อน ▾"; resize();
+});
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+  if (firstFit && w > 0 && h > 0) { const [p, t] = fitted("front"); camera.position.copy(p); controls.target.copy(t); firstFit = false; }
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+const v = new THREE.Vector3();
+function tick() {
+  if (anim) {
+    anim.t = Math.min(1, anim.t + 0.04); const e = 1 - Math.pow(1 - anim.t, 3);
+    camera.position.lerpVectors(anim.p0, anim.p1, e); controls.target.lerpVectors(anim.t0, anim.t1, e);
+    if (anim.t >= 1) anim = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  if (state.labels) {
+    const w = stage.clientWidth, h = stage.clientHeight, floor = state.upper ? "uf" : "gf";
+    for (const n of labelNodes) {
+      const show = n.floor === floor || (state.upper && n.floor === "gf" && n.el.textContent.startsWith("รับแขก"));
+      v.copy(n.pos).project(camera);
+      const visible = show && v.z < 1 && Math.abs(v.x) < 1.05 && Math.abs(v.y) < 1.05;
+      n.el.hidden = !visible;
+      if (visible) { n.el.style.left = `${(v.x + 1) / 2 * w}px`; n.el.style.top = `${(1 - v.y) / 2 * h}px`; }
+    }
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+</script>
