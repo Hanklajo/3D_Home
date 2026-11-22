@@ -115,6 +115,8 @@ details.group summary{font:500 11px var(--f-mono);letter-spacing:.08em;text-tran
         <div class="chips">
           <label class="tg"><input type="checkbox" id="t-trees" checked>ต้นไม้</label>
           <label class="tg"><input type="checkbox" id="t-site" checked>พื้นที่รอบบ้าน</label>
+          <label class="tg"><input type="checkbox" id="t-car" checked>รถยนต์</label>
+          <label class="tg"><input type="checkbox" id="t-night">โหมดกลางคืน</label>
           <label class="tg"><input type="checkbox" id="t-labels">ชื่อห้อง</label>
         </div>
       </div>
@@ -144,6 +146,7 @@ details.group summary{font:500 11px var(--f-mono);letter-spacing:.08em;text-tran
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const stage = document.getElementById("stage");
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -157,16 +160,31 @@ renderer.localClippingEnabled = true;
 stage.prepend(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xcfe0ec);
-scene.fog = new THREE.Fog(0xcfe0ec, 70, 140);
+// sky: vertical gradient for day and night
+function skyTexture(top, horizon) {
+  const c = document.createElement("canvas"); c.width = 2; c.height = 256;
+  const g = c.getContext("2d"), grd = g.createLinearGradient(0, 0, 0, 256);
+  grd.addColorStop(0, top); grd.addColorStop(0.62, horizon); grd.addColorStop(1, horizon);
+  g.fillStyle = grd; g.fillRect(0, 0, 2, 256);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const SKY = { day: skyTexture("#7fb2de", "#e8eef1"), night: skyTexture("#0b1424", "#2a3446") };
+scene.background = SKY.day;
+scene.fog = new THREE.Fog(0xe2eaee, 80, 160);
+// image-based lighting so glass, metal and paint pick up reflections
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(renderer), 0.04).texture;
+const allMats = [];            // r160: environment strength is set per material (envMapIntensity)
+let envLevel = 0.4;
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.maxPolarAngle = Math.PI * 0.495;
 controls.minDistance = 3; controls.maxDistance = 90;
 
-scene.add(new THREE.HemisphereLight(0xeaf3ff, 0x6f7a55, 1.1));
-const sun = new THREE.DirectionalLight(0xfff1dc, 2.4);
+const hemi = new THREE.HemisphereLight(0xeaf3ff, 0x6f7a55, 0.8);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff1dc, 2.6);
 sun.position.set(-18, 30, 22);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -188,12 +206,14 @@ function T(name) {
   return tex[name];
 }
 const SURF = {   // body -> [texture, repeat in metres, keep body colour as tint]
-  "Plinth": ["tile", 2.4], "Slab 2F": ["tile", 2.4], "Terrace": ["granite", 1.2], "Planters": ["granite", 1.0],
+  "Plinth": ["tile", 2.4, 1], "Slab 2F": ["oak", 1.5], "Terrace": ["granite", 1.2], "Planters": ["granite", 1.0, 1],
+  "FF Wood": ["oak", 1.0], "Door leaves": ["oak", 1.0], "Facade slats": ["oak", 1.0],
+  "FF Fabric": ["fabric", 0.5, 1], "FF Rug": ["fabric", 0.4, 1], "Fence": ["plaster", 2, 1],
   "Walls GF": ["plaster", 2, 1], "Walls Centre": ["plaster", 2, 1], "Walls Left 2F": ["plaster", 2, 1], "Walls Laundry": ["plaster", 2, 1],
   "Partitions GF": ["plaster", 2, 1], "Partitions 2F": ["plaster", 2, 1], "Carport frame": ["plaster", 2, 1],
   "Portico": ["marble", 1.5], "Portico arch": ["marble", 1.5], "Kitchen tops": ["marble", 1.2],
-  "Roof Centre": ["roof", 3], "Roof Left": ["roof", 3], "Roof Right": ["roof", 3], "Laundry roof": ["roof", 3],
-  "Stair": ["oak", 1.5], "Site lawn": ["grass", 4], "Site lawn (1)": ["grass", 4], "Site paving": ["cobble", 1.2],
+  "Roof Centre": ["roof", 3, 1], "Roof Left": ["roof", 3, 1], "Roof Right": ["roof", 3, 1], "Laundry roof": ["roof", 3, 1],
+  "Stair": ["oak", 1.0], "Site lawn": ["grass", 4], "Site lawn (1)": ["grass", 4], "Site paving": ["cobble", 1.2],
   "Apron": ["concrete", 3], "Carport": ["concrete", 3], "Tree trunks": ["bark", 1], "Tree crowns": ["grass", 1.5, 1], "Shrubs": ["grass", 1.0, 1],
 };
 function boxUV(geom, rep) {
@@ -212,7 +232,8 @@ function boxUV(geom, rep) {
 // upper-floor switch = a cut just under the first-floor slab (+4.00) on every building layer
 const cut = new THREE.Plane(new THREE.Vector3(0, -1, 0), 3.9);
 const BUILDING = ["structure", "partitions", "stair", "frames", "glass", "doors", "sanitary", "furniture"];
-const LAYERS = ["site", "trees", "structure", "partitions", "stair", "roof", "frames", "glass", "doors", "furniture", "sanitary"];
+const LAYERS = ["site", "trees", "structure", "partitions", "stair", "roof", "frames", "glass", "doors", "furniture", "sanitary", "car"];
+const lampMats = [];
 const groups = {};
 const loader = new GLTFLoader();
 let loaded = 0;
@@ -223,12 +244,28 @@ function prepare(layer, root) {
     if (!o.isMesh) return;
     const name = o.name || (o.parent && o.parent.name) || "";
     const body = SURF[name] ? name : (SURF[o.parent?.name] ? o.parent.name : name);
-    let m = o.material.clone();
-    m = new THREE.MeshStandardMaterial({ color: m.color, roughness: m.roughness ?? 0.8, metalness: m.metalness ?? 0 });
+    const src = o.material;
+    let m = new THREE.MeshStandardMaterial({ color: src.color, roughness: 0.75, metalness: 0 });
     const s = SURF[body];
     if (s) { boxUV(o.geometry, s[1]); m.map = T(s[0]); if (!s[2]) m.color.set(0xffffff); }
-    if (layer === "glass") { m.color.set(0x7fb2b4); m.transparent = true; m.opacity = 0.32; m.roughness = 0.05; m.depthWrite = false; }
-    if (layer === "frames") { m.metalness = 0.6; m.roughness = 0.4; }
+    if (layer === "glass" || body === "Car glass" || body === "Mirrors") {
+      m = new THREE.MeshPhysicalMaterial({ color: body === "Car glass" ? 0x1c262c : 0x9cc0c4, roughness: 0.03, metalness: 0,
+        transparent: body !== "Mirrors" && body !== "Car glass", opacity: 0.28, envMapIntensity: 1.6, ior: 1.5, specularIntensity: 1 });
+      if (body === "Mirrors") { m.color.set(0xdfe6ea); m.metalness = 1; m.roughness = 0.02; }
+      if (m.transparent) m.depthWrite = false;
+    }
+    if (layer === "frames" || body === "Handles" || body === "Gate") { m.metalness = 0.7; m.roughness = 0.35; }
+    if (body === "FF Metal") { m.metalness = 0.9; m.roughness = 0.25; }
+    if (body === "FF Dark") m.roughness = 0.45;
+    if (body === "Sanitary" || body === "Kitchen tops" || body === "FF White") m.roughness = 0.25;
+    if (body === "Car body") m = new THREE.MeshPhysicalMaterial({ color: src.color, metalness: 0.6, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.08 });
+    if (body === "Car wheels") m.roughness = 0.9;
+    if (body === "Plinth") m.color.set(0xb9b1a5);          // warm grey 60x60 porcelain on the ground floor
+    if (body === "Partitions GF" || body === "Partitions 2F") m.color.set(0xe9e6e1);
+    if (body === "FF Light") { m.emissive = new THREE.Color(0xffd9a0); m.emissiveIntensity = 0.25; lampMats.push(m); }
+    m.userData.envBoost = (layer === "glass" || body === "Car glass" || body === "Mirrors" || body === "Car body") ? 3 : 1;
+    m.envMapIntensity = envLevel * m.userData.envBoost;
+    allMats.push(m);
     if (BUILDING.includes(layer)) { m.clippingPlanes = []; m.clipShadows = true; m.side = THREE.DoubleSide; }
     o.material = m;
     o.castShadow = layer !== "site" && layer !== "glass";
@@ -276,6 +313,24 @@ for (const [floor, list] of Object.entries(ROOMS)) {
   }
 }
 
+// night mode: sun down, lamps on, warm light from the fittings (model metres x, y, z)
+const LAMPS = [[8.25, 4.35, 5.8, 40], [6.95, 9.22, 2.4, 10], [8.25, 9.22, 2.4, 10], [2.0, 10.6, 2.2, 8], [10.5, 6.1, 2.1, 8],
+  [8.6, 12.4, 3.2, 8], [13.0, 12.4, 3.2, 8], [12.6, 8.2, 3.2, 8], [2.6, 12.2, 6.9, 8], [2.6, 3.5, 6.9, 8], [8.2, 8.8, 6.9, 10],
+  [7.3, 12.4, 6.9, 6], [8.5, 0.8, 3.6, 10]];
+const lampLights = LAMPS.map(([x, y, z, cd]) => {
+  const l = new THREE.PointLight(0xffc98a, cd, 9, 2); l.position.set(x, z, -y); l.visible = false; scene.add(l); return l;
+});
+function setNight(n) {
+  scene.background = n ? SKY.night : SKY.day;
+  scene.fog.color.set(n ? 0x1c2433 : 0xe2eaee);
+  sun.intensity = n ? 0.08 : 2.6; hemi.intensity = n ? 0.12 : 0.6;
+  envLevel = n ? 0.03 : 0.4;
+  allMats.forEach(m => { m.envMapIntensity = envLevel * m.userData.envBoost; });
+  renderer.toneMappingExposure = n ? 1.25 : 0.92;
+  lampMats.forEach(m => { m.emissiveIntensity = n ? 3.5 : 0.25; });
+  lampLights.forEach(l => { l.visible = n; });
+}
+
 // toggles
 const $ = id => document.getElementById(id);
 const state = {};
@@ -284,8 +339,9 @@ function applyToggles() {
   const upper = on("t-upper");
   const vis = { roof: on("t-roof") && upper, partitions: on("t-partitions"), stair: on("t-stair"), frames: on("t-frames"),
     glass: on("t-glass"), doors: on("t-doors"), sanitary: on("t-sanitary"), furniture: on("t-furniture"), trees: on("t-trees"),
-    site: on("t-site"), structure: true };
+    site: on("t-site"), car: on("t-car"), structure: true };
   for (const [k, g] of Object.entries(groups)) g.visible = vis[k] ?? true;
+  setNight(on("t-night"));
   for (const k of BUILDING) groups[k]?.traverse(o => { if (o.isMesh) o.material.clippingPlanes = upper ? [] : [cut]; });
   $("t-roof").disabled = !upper;
   state.labels = on("t-labels"); state.upper = upper;
@@ -298,7 +354,7 @@ document.querySelectorAll(".tg input").forEach(i => i.addEventListener("change",
 // views (positions in model metres -> three)
 const P = (x, y, z) => new THREE.Vector3(x, z, -y);
 const VIEWS = {
-  front: [P(1.5, -21, 7), P(8.5, 5, 3.6)], aerial: [P(-12, -16, 22), P(8.75, 7.5, 1)],
+  front: [P(2.5, -19, 9.5), P(8.5, 5, 3.4)], aerial: [P(-12, -16, 22), P(8.75, 7.5, 1)],
   top: [P(8.75, 7.0, 42), P(8.75, 7.01, 0)], back: [P(22, 30, 9), P(8.75, 9, 3)],
 };
 let anim = null;
